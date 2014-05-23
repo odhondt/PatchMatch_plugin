@@ -1,11 +1,54 @@
-CImg<float> vizFlow(CImg<int> &off, int cutVal=0)
+/*
+ #
+ #  File        : PatchMatch_plugin.h
+ #                ( C++ header file - CImg plug-in )
+ #
+ #  Description : Plugin implementing the Patch Match algorithm to use 
+ #                with the CImg library.
+ #                ( http://cimg.sourceforge.net )
+ #
+ #  Copyright   : Olivier D'Hondt
+ #                (https://sites.google.com/site/dhondtolivier/)
+ #
+ #  License     : CeCILL v2.0
+ #                ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
+ #
+ #  This software is governed by the CeCILL  license under French law and
+ #  abiding by the rules of distribution of free software.  You can  use,
+ #  modify and/ or redistribute the software under the terms of the CeCILL
+ #  license as circulated by CEA, CNRS and INRIA at the following URL
+ #  "http://www.cecill.info".
+ #
+ #  As a counterpart to the access to the source code and  rights to copy,
+ #  modify and redistribute granted by the license, users are provided only
+ #  with a limited warranty  and the software's author,  the holder of the
+ #  economic rights,  and the successive licensors  have only  limited
+ #  liability.
+ #
+ #  In this respect, the user's attention is drawn to the risks associated
+ #  with loading,  using,  modifying and/or developing or reproducing the
+ #  software by the user in light of its specific status of free software,
+ #  that may mean  that it is complicated to manipulate,  and  that  also
+ #  therefore means  that it is reserved for developers  and  experienced
+ #  professionals having in-depth computer knowledge. Users are therefore
+ #  encouraged to load and test the software's suitability as regards their
+ #  requirements in conditions enabling the security of their systems and/or
+ #  data to be ensured and,  more generally, to use and operate it in the
+ #  same conditions as regards security.
+ #
+ #  The fact that you are presently reading this means that you have had
+ #  knowledge of the CeCILL license and that you accept its terms.
+ #
+*/
+
+CImg<float> get_vizFlow(float cutVal = 0)
 {
-  CImg<float> res(off, "x,y,1,3", 0.0);
+  CImg<float> res((*this), "x,y,1,3", 0.0);
 
   // Normalizing offset magnitude
-  CImg<float> mag(off, "xy", 0.0);
-  cimg_forXY(off, x, y){
-    mag(x, y) = sqrt(off(x, y, 0, 0)*off(x, y, 0, 0) + off(x , y, 0, 1)*off(x, y, 0, 1)); 
+  CImg<float> mag((*this), "xy", 0.0);
+  cimg_forXY(*this, x, y){
+    mag(x, y) = std::sqrt((*this)(x, y, 0, 0)*(*this)(x, y, 0, 0) + (*this)(x , y, 0, 1)*(*this)(x, y, 0, 1)); 
   }
   
   if(cutVal)
@@ -14,11 +57,11 @@ CImg<float> vizFlow(CImg<int> &off, int cutVal=0)
   mag /= mag.max();
 
   // Filling HSV values
-  cimg_forXY(off, x, y){
-    float xx = -off(x, y, 0, 0);
-    float yy = -off(x, y, 0, 1);
+  cimg_forXY(*this, x, y){
+    float xx = -(*this)(x, y, 0, 0);
+    float yy = -(*this)(x, y, 0, 1);
     
-    float H = cimg::max(180*((atan2(yy, xx)/M_PI)+1.0), 0.0);
+    float H = cimg::max(180*((std::atan2(yy, xx)/M_PI)+1.0), 0.0);
     float S = mag(x, y);
     float V = 1.0;
     
@@ -33,16 +76,16 @@ CImg<float> vizFlow(CImg<int> &off, int cutVal=0)
   return res;
 }
 
-int distPatch(CImg<int> &img0, CImg<int> &img1, 
+T distPatch(const CImg<T> &img0, const CImg<T> &img1, 
     int x0, int y0, 
     int x1, int y1,
     int pSize)
 {
-  int d2 = 0;
+  T d2 = 0;
   for(int c = 0; c < img0.spectrum(); c++){
     for(int y = 0; y < pSize; y++){
       for(int x = 0; x < pSize; x++){
-        int d = (img0(x0 + x, y0 + y, 0, c) - img1(x1 + x, y1 + y, 0, c)); 
+        T d = (img0(x0 + x, y0 + y, 0, c) - img1(x1 + x, y1 + y, 0, c)); 
         d2 += d*d;      
       }
     } 
@@ -50,14 +93,15 @@ int distPatch(CImg<int> &img0, CImg<int> &img1,
   return d2;
 }
 
-// Original patch match
-CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter = 2)
+// Patch match algorithm
+template<typename Tt>
+CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, int nIter = 2)
 {
   if(img0.spectrum() != img1.spectrum())
-    cerr<<"Images must have the same number of channels.\n";
+    std::cerr<<"Images must have the same number of channels.\n";
   if(!patchSize % 2){
     patchSize++;
-    cout<<"Input patch size is even, adding 1.\n";
+    std::cout<<"Input patch size is even, adding 1.\n";
   }
   int w0 = img0.width();
   int h0 = img0.height();
@@ -66,23 +110,25 @@ CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter 
   int nChannels = img0.spectrum();
 
   int P = patchSize;
-  int H = int(P/2);
+  int H = P/2;
   
   // Zero padding borders
   // TODO : correct imgW in image 1 can be diff from img 0
-  CImg<int> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
-  CImg<int> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
+  CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
+  CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
   
-  img0big.rand(0,255);
-  img1big.rand(0,255);
+//  img0big.rand(0,255);
+//  img1big.rand(0,255);
   img0big.draw_image(H, H, 0, 0, img0);
   img1big.draw_image(H, H, 0, 0, img1);
+  img0big.display();
 
   CImg<int> off(w0, h0, 1, 2, 0);
-  CImg<int> minDist(w0, h0, 1, 1, 0);
+  CImg<Tt> minDist(w0, h0, 1, 1, 0);
 
   int cnt = 0;
   // Initialize
+//  std::cout<<"Init\n";
   cimg_forXY(off, x0, y0){
     int x1 = ((w1-1) * cimg::rand());
     int y1 = ((h1-1) * cimg::rand());
@@ -90,7 +136,7 @@ CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter 
     off(x0, y0, 0, 1) = y1-y0;
     minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
   }
-  vizFlow(off).display(); 
+//  off.get_vizFlow().display(); 
 
   int xStart, yStart, xFinish, yFinish;
   int inc;
@@ -111,7 +157,9 @@ CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter 
     for(int y = yStart; y != yFinish; y=y+inc)
       for(int x = xStart; x != xFinish; x=x+inc){
         // Propagate
-        int d2 = distPatch(img0big, img1big, x, y, x+off(x-inc, y, 0, 0), y+off(x-inc, y, 0, 1), P);
+//        std::cout<<"Propag\n";
+//        std::cout<<"inc "<<inc<<"\n";
+        Tt d2 = distPatch(img0big, img1big, x, y, x+off(x-inc, y, 0, 0), y+off(x-inc, y, 0, 1), P);
         if(d2<minDist(x, y)){
           minDist(x, y) = d2;
           off(x, y, 0, 0) = off(x-inc, y, 0, 0);
@@ -124,11 +172,12 @@ CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter 
           off(x, y, 0, 1) = off(x, y-inc, 0, 1);
         }
 
-        // Search
+        // Randomized search
+//        std::cout<<"Search\n";
         int wSizX = w1-1;
         int wSizY = h1-1;
-        int offXCurr = off(x, y, 0, 0);
-        int offYCurr = off(x, y, 0, 1);
+        T offXCurr = off(x, y, 0, 0);
+        T offYCurr = off(x, y, 0, 1);
         do{
           int wMinX = cimg::max(0, x+offXCurr-wSizX/2); 
           int wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2); 
@@ -151,6 +200,29 @@ CImg<int> patchMatch(CImg<int> &img0, CImg<int> &img1, int patchSize, int nIter 
 
       }
   }
+  return off.move_to(*this);
+}
 
-  return off;
+// Reconstruct an image from an offset map and a query image
+template<typename Tt>
+CImg<T> & reconstruct(const CImg<T> &qimg, const CImg<Tt> &off)
+{
+  if((*this).spectrum() != qimg.spectrum())
+    std::cerr<<"Images must have the same number of channels.\n";
+  if((*this).width() != off.width() || (*this).height() != off.height())
+    std::cerr<<"Offset map must have the same dimensions than input image.\n";
+  cimg_forXY(off, x, y){
+    int qx = x + off(x, y, 0, 0); 
+    int qy = y + off(x, y, 0, 1); 
+    cimg_forC(qimg, c){
+      (*this)(x, y, 0, c) = qimg(qx, qy, 0, c);
+    }
+  }
+  return (*this);
+}
+
+template<typename Tt>
+CImg<T> get_reconstruct(const CImg<T> &qimg, const CImg<Tt> &off)
+{
+  return CImg<T>(*this, false).reconstruct(qimg, off);
 }

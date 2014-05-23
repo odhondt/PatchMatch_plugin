@@ -20,11 +20,8 @@ CIMG_FILES = PatchMatch\
 CIMG_VERSION = 1.24
 CC           = g++
 X11PATH      = /usr/X11R6
-#CFLAGS       = -Wall -W -ansi -pedantic -ffast-math
 CFLAGS       = -ansi -pedantic -ffast-math
-#CFLAGS       = -O3 -ansi -pedantic -ffast-math 
 LDFLAGS      = -lm -lpthread  
-#LDFLAGS      = -L/home/olivier/lib -I/home/olivier/lib -lm -lpthread -lfigtree -lmgl -lmgl-fltk
 
 #--------------------------------------------------
 # Set compilation flags allowing to customize CImg
