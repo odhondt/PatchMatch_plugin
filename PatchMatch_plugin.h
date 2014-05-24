@@ -117,11 +117,10 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
   CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
   CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
   
-//  img0big.rand(0,255);
-//  img1big.rand(0,255);
+  img0big.rand(0,255);
+  img1big.rand(0,255);
   img0big.draw_image(H, H, 0, 0, img0);
   img1big.draw_image(H, H, 0, 0, img1);
-  img0big.display();
 
   CImg<int> off(w0, h0, 1, 2, 0);
   CImg<Tt> minDist(w0, h0, 1, 1, 0);
@@ -157,23 +156,29 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
     for(int y = yStart; y != yFinish; y=y+inc)
       for(int x = xStart; x != xFinish; x=x+inc){
         // Propagate
-//        std::cout<<"Propag\n";
-//        std::cout<<"inc "<<inc<<"\n";
-        Tt d2 = distPatch(img0big, img1big, x, y, x+off(x-inc, y, 0, 0), y+off(x-inc, y, 0, 1), P);
-        if(d2<minDist(x, y)){
-          minDist(x, y) = d2;
-          off(x, y, 0, 0) = off(x-inc, y, 0, 0);
-          off(x, y, 0, 1) = off(x-inc, y, 0, 1);
+        Tt d2 = 0.0;
+        int x1 = x+off(x-inc, y, 0, 0);
+        int y1 = y+off(x-inc, y, 0, 1);
+        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds 
+          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
+          if(d2<minDist(x, y)){
+            minDist(x, y) = d2;
+            off(x, y, 0, 0) = off(x-inc, y, 0, 0);
+            off(x, y, 0, 1) = off(x-inc, y, 0, 1);
+          }
         }
-        d2 = distPatch(img0big, img1big, x, y, x+off(x, y-inc, 0, 0), y+off(x, y-inc, 0, 1), P);
-        if(d2<minDist(x, y)){
-          minDist(x, y) = d2;
-          off(x, y, 0, 0) = off(x, y-inc, 0, 0);
-          off(x, y, 0, 1) = off(x, y-inc, 0, 1);
+        x1 = x+off(x, y-inc, 0, 0);
+        y1 = y+off(x, y-inc, 0, 1);
+        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds 
+          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
+          if(d2<minDist(x, y)){
+            minDist(x, y) = d2;
+            off(x, y, 0, 0) = off(x, y-inc, 0, 0);
+            off(x, y, 0, 1) = off(x, y-inc, 0, 1);
+          }
         }
 
         // Randomized search
-//        std::cout<<"Search\n";
         int wSizX = w1-1;
         int wSizY = h1-1;
         T offXCurr = off(x, y, 0, 0);
@@ -181,13 +186,13 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
         do{
           int wMinX = cimg::max(0, x+offXCurr-wSizX/2); 
           int wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2); 
-          int x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
+          x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
 
           int wMinY = cimg::max(0, y+offYCurr-wSizY/2); 
           int wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2); 
-          int y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
+          y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
 
-          int d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
+          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
 
           if(d2 < minDist(x, y)){
             minDist(x, y) = d2;
