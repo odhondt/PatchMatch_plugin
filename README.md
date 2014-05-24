@@ -5,7 +5,8 @@
 - The code is not optimized, it is intended to be short, clean and readable.
 - A fast version could be implemented.
 - Compile with `make linux` (olinux to eneable compiler optimizations)
-- Type ./PatchMatch -h to display help.
+- Type `./PatchMatch -h` to display help.
+- The original paper can be found here: http://gfx.cs.princeton.edu/pubs/Barnes_2009_PAR/index.php
 
 - TODO
   - [ ] More detailed doc.
