@@ -14,4 +14,5 @@
   - [ ] Add limits for offsets.
   - [ ] Stereo version.
   - [ ] Add more features (ex: adaptive supports, etc.)
+  - [ ] Applications (inpainting, reshuffling...) 
 
