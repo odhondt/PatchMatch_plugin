@@ -41,6 +41,7 @@
  #
 */
 
+// Visualize optical flow maps with HSV color coding.
 CImg<float> get_vizFlow(float cutVal = 0)
 {
   CImg<float> res((*this), "x,y,1,3", 0.0);
@@ -76,6 +77,7 @@ CImg<float> get_vizFlow(float cutVal = 0)
   return res;
 }
 
+// Distance between two patches
 T distPatch(const CImg<T> &img0, const CImg<T> &img1,
     int x0, int y0,
     int x1, int y1,
@@ -95,7 +97,8 @@ T distPatch(const CImg<T> &img0, const CImg<T> &img1,
 
 // Patch match algorithm
 template<typename Tt>
-CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, int nIter = 2)
+CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
+                    int patchSize, int nIter = 2, CImgDisplay* disp=NULL)
 {
   if(img0.spectrum() != img1.spectrum())
     std::cerr<<"Images must have the same number of channels.\n";
@@ -109,11 +112,12 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
   int h1 = img1.height();
   int nChannels = img0.spectrum();
 
+  CImg<Tt> imgrec(img0, "xy1c", 0.0);
+
   int P = patchSize;
   int H = P/2;
 
   // Zero padding borders
-  // TODO : correct imgW in image 1 can be diff from img 0
   CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
   CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
 
@@ -122,12 +126,11 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
   img0big.draw_image(H, H, 0, 0, img0);
   img1big.draw_image(H, H, 0, 0, img1);
 
-  CImg<int> off(w0, h0, 1, 2, 0);
+  CImg<T> off(w0, h0, 1, 2, 0);
   CImg<Tt> minDist(w0, h0, 1, 1, 0);
 
   int cnt = 0;
   // Initialize
-//  std::cout<<"Init\n";
   cimg_forXY(off, x0, y0){
     int x1 = ((w1-1) * cimg::rand());
     int y1 = ((h1-1) * cimg::rand());
@@ -135,12 +138,12 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
     off(x0, y0, 0, 1) = y1-y0;
     minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
   }
-//  off.get_vizFlow().display();
 
   int xStart, yStart, xFinish, yFinish;
   int inc;
   for(int n = 0; n < nIter; n++){
 
+    if(disp) std::cout<<"Iteration "<<n+1<<'\n';
     // at odd iterations, reverse scan order
     if(n%2 == 0){
       xStart = 1; yStart = 1;
@@ -202,6 +205,16 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
           wSizX /= 2;
           wSizY /= 2;
         }while(wSizX >= 1 && wSizY >= 1);
+        if(disp){
+          if(x%(w0-1)==0){
+            disp->display(
+            (img0,
+             imgrec.reconstruct(img1, off).get_normalize(0,255),
+             off.get_vizFlow(50),
+             img1));
+          }
+        }
+
 
       }
   }
@@ -215,7 +228,7 @@ CImg<T> & reconstruct(const CImg<T> &qimg, const CImg<Tt> &off)
   if((*this).spectrum() != qimg.spectrum())
     std::cerr<<"Images must have the same number of channels.\n";
   if((*this).width() != off.width() || (*this).height() != off.height())
-    std::cerr<<"Offset map must have the same dimensions than input image.\n";
+    std::cerr<<"Offset map must have the same dimensions as input image.\n";
   cimg_forXY(off, x, y){
     int qx = x + off(x, y, 0, 0);
     int qy = y + off(x, y, 0, 1);

@@ -12,7 +12,8 @@
 ## TODO
   - [ ] More detailed doc.
   - [ ] Add limits for offsets.
-  - [ ] Stereo version.
+  - [ ] Fast version
   - [ ] Add more features (ex: adaptive supports, etc.)
-  - [ ] Applications (inpainting, reshuffling...) 
-
+  - [ ] Applications (inpainting, reshuffling...)
+  - [ ] Stereo version.
+  - [ ] Generalized Patch Match

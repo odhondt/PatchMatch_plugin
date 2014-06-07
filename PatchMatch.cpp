@@ -22,16 +22,20 @@ int main(int argc, char **argv)
   }
 
   srand (time(NULL));
-  
+
 
   CImg<int> img0(file0);
   CImg<int> img1(file1);
 
   CImg<int> off;
-  off.patchMatch(img0, img1, P, N);
-  
-  off.get_vizFlow(50).display();
-  CImg<int> imgrec(img0.get_reconstruct(img1, off));
-  imgrec.save("out.png");
-  (img0, imgrec, img1).display();
+  // off.patchMatch(img0, img1, P, N);
+
+  // off.get_vizFlow(50).display();
+  // CImg<int> imgrec(img0.get_reconstruct(img1, off));
+  // imgrec.save("out.png");
+  // (img0, imgrec, img1).display();
+  img0.noise(20.0).display();
+  CImgDisplay *disp = new CImgDisplay;
+  off.patchMatch(img0, img1, P, N, disp);
+  delete disp;
 }
