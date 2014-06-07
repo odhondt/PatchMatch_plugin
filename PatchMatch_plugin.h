@@ -3,7 +3,7 @@
  #  File        : PatchMatch_plugin.h
  #                ( C++ header file - CImg plug-in )
  #
- #  Description : Plugin implementing the Patch Match algorithm to use 
+ #  Description : Plugin implementing the Patch Match algorithm to use
  #                with the CImg library.
  #                ( http://cimg.sourceforge.net )
  #
@@ -48,36 +48,36 @@ CImg<float> get_vizFlow(float cutVal = 0)
   // Normalizing offset magnitude
   CImg<float> mag((*this), "xy", 0.0);
   cimg_forXY(*this, x, y){
-    mag(x, y) = std::sqrt((*this)(x, y, 0, 0)*(*this)(x, y, 0, 0) + (*this)(x , y, 0, 1)*(*this)(x, y, 0, 1)); 
+    mag(x, y) = std::sqrt((*this)(x, y, 0, 0)*(*this)(x, y, 0, 0) + (*this)(x , y, 0, 1)*(*this)(x, y, 0, 1));
   }
-  
+
   if(cutVal)
     mag.cut(0, cutVal);
-  
+
   mag /= mag.max();
 
   // Filling HSV values
   cimg_forXY(*this, x, y){
     float xx = -(*this)(x, y, 0, 0);
     float yy = -(*this)(x, y, 0, 1);
-    
+
     float H = cimg::max(180*((std::atan2(yy, xx)/M_PI)+1.0), 0.0);
     float S = mag(x, y);
     float V = 1.0;
-    
+
     res(x, y, 0, 0) = H;
-    res(x, y, 0, 1) = mag(x, y);
+    res(x, y, 0, 1) = S;
     res(x, y, 0, 2) = V;
 
   }
 
   res.HSVtoRGB();
-  
+
   return res;
 }
 
-T distPatch(const CImg<T> &img0, const CImg<T> &img1, 
-    int x0, int y0, 
+T distPatch(const CImg<T> &img0, const CImg<T> &img1,
+    int x0, int y0,
     int x1, int y1,
     int pSize)
 {
@@ -85,10 +85,10 @@ T distPatch(const CImg<T> &img0, const CImg<T> &img1,
   for(int c = 0; c < img0.spectrum(); c++){
     for(int y = 0; y < pSize; y++){
       for(int x = 0; x < pSize; x++){
-        T d = (img0(x0 + x, y0 + y, 0, c) - img1(x1 + x, y1 + y, 0, c)); 
-        d2 += d*d;      
+        T d = (img0(x0 + x, y0 + y, 0, c) - img1(x1 + x, y1 + y, 0, c));
+        d2 += d*d;
       }
-    } 
+    }
   }
   return d2;
 }
@@ -111,12 +111,12 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
 
   int P = patchSize;
   int H = P/2;
-  
+
   // Zero padding borders
   // TODO : correct imgW in image 1 can be diff from img 0
   CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
   CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
-  
+
   img0big.rand(0,255);
   img1big.rand(0,255);
   img0big.draw_image(H, H, 0, 0, img0);
@@ -135,12 +135,12 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
     off(x0, y0, 0, 1) = y1-y0;
     minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
   }
-//  off.get_vizFlow().display(); 
+//  off.get_vizFlow().display();
 
   int xStart, yStart, xFinish, yFinish;
   int inc;
   for(int n = 0; n < nIter; n++){
-    
+
     // at odd iterations, reverse scan order
     if(n%2 == 0){
       xStart = 1; yStart = 1;
@@ -159,7 +159,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
         Tt d2 = 0.0;
         int x1 = x+off(x-inc, y, 0, 0);
         int y1 = y+off(x-inc, y, 0, 1);
-        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds 
+        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds
           d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
           if(d2<minDist(x, y)){
             minDist(x, y) = d2;
@@ -169,7 +169,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
         }
         x1 = x+off(x, y-inc, 0, 0);
         y1 = y+off(x, y-inc, 0, 1);
-        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds 
+        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds
           d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
           if(d2<minDist(x, y)){
             minDist(x, y) = d2;
@@ -184,12 +184,12 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
         T offXCurr = off(x, y, 0, 0);
         T offYCurr = off(x, y, 0, 1);
         do{
-          int wMinX = cimg::max(0, x+offXCurr-wSizX/2); 
-          int wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2); 
+          int wMinX = cimg::max(0, x+offXCurr-wSizX/2);
+          int wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2);
           x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
 
-          int wMinY = cimg::max(0, y+offYCurr-wSizY/2); 
-          int wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2); 
+          int wMinY = cimg::max(0, y+offYCurr-wSizY/2);
+          int wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
           y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
 
           d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
@@ -201,7 +201,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1, int patchSize, 
           }
           wSizX /= 2;
           wSizY /= 2;
-        }while(wSizX >= 1 && wSizY >= 1); 
+        }while(wSizX >= 1 && wSizY >= 1);
 
       }
   }
@@ -217,8 +217,8 @@ CImg<T> & reconstruct(const CImg<T> &qimg, const CImg<Tt> &off)
   if((*this).width() != off.width() || (*this).height() != off.height())
     std::cerr<<"Offset map must have the same dimensions than input image.\n";
   cimg_forXY(off, x, y){
-    int qx = x + off(x, y, 0, 0); 
-    int qy = y + off(x, y, 0, 1); 
+    int qx = x + off(x, y, 0, 0);
+    int qy = y + off(x, y, 0, 1);
     cimg_forC(qimg, c){
       (*this)(x, y, 0, c) = qimg(qx, qy, 0, c);
     }

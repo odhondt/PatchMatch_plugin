@@ -32,5 +32,6 @@ int main(int argc, char **argv)
   
   off.get_vizFlow(50).display();
   CImg<int> imgrec(img0.get_reconstruct(img1, off));
+  imgrec.save("out.png");
   (img0, imgrec, img1).display();
 }
