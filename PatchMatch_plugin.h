@@ -147,7 +147,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
   int inc;
   for(int n = 0; n < nIter; n++){
 
-    if(disp) std::cout<<"Iteration "<<n+1<<'\n';
+    std::cout<<"Iteration "<<n+1<<'\n';
     // at odd iterations, reverse scan order
     if(n%2 == 0){
       xStart = 1; yStart = 1;
