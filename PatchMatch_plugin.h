@@ -112,7 +112,9 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
   int h1 = img1.height();
   int nChannels = img0.spectrum();
 
-  CImg<Tt> imgrec(img0, "xy1c", 0.0);
+  CImg<Tt> imgrec; // used only for display purpose
+
+  if(disp) imgrec.assign(img0, "xy1c", 0.0);
 
   int P = patchSize;
   int H = P/2;
@@ -207,6 +209,9 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
           wSizX /= 2;
           wSizY /= 2;
         }while(wSizX >= 1 && wSizY >= 1);
+        // If a pointer to a CImgDisplay is passed as the last argument
+        // the output of the algorithm is displayed as an animation
+        // !! It slows down the algorithm a lot !!
         if(disp){
           if(x%(w0-1)==0){
             disp->display(
