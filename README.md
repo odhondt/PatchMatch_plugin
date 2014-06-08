@@ -10,10 +10,11 @@
 - The original paper can be found here: http://gfx.cs.princeton.edu/pubs/Barnes_2009_PAR/index.php
 
 ## TODO
-  - [ ] More detailed doc.
-  - [ ] Add limits for offsets.
+  - [x] Display in real-time
+  - [ ] More detailed doc
+  - [ ] Add limits for offsets
   - [ ] Fast version
   - [ ] Add more features (ex: adaptive supports, etc.)
   - [ ] Applications (inpainting, reshuffling...)
-  - [ ] Stereo version.
-  - [ ] Generalized Patch Match
+  - [ ] Stereo version
+  - [ ] Generalized PatchMatch

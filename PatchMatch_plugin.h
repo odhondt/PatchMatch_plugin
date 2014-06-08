@@ -121,8 +121,10 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
   CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
   CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
 
+  // Try to penalize border patches
   img0big.rand(0,255);
   img1big.rand(0,255);
+
   img0big.draw_image(H, H, 0, 0, img0);
   img1big.draw_image(H, H, 0, 0, img1);
 
@@ -130,7 +132,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
   CImg<Tt> minDist(w0, h0, 1, 1, 0);
 
   int cnt = 0;
-  // Initialize
+  // Initialize with random offsets
   cimg_forXY(off, x0, y0){
     int x1 = ((w1-1) * cimg::rand());
     int y1 = ((h1-1) * cimg::rand());
@@ -158,7 +160,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
     }
     for(int y = yStart; y != yFinish; y=y+inc)
       for(int x = xStart; x != xFinish; x=x+inc){
-        // Propagate
+        // Propagation
         Tt d2 = 0.0;
         int x1 = x+off(x-inc, y, 0, 0);
         int y1 = y+off(x-inc, y, 0, 1);
@@ -210,7 +212,7 @@ CImg<T> & patchMatch(const CImg<Tt> &img0, const CImg<Tt> &img1,
             disp->display(
             (img0,
              imgrec.reconstruct(img1, off).get_normalize(0,255),
-             off.get_vizFlow(50),
+             off.get_vizFlow(100),
              img1));
           }
         }
