@@ -9,7 +9,9 @@
 - Type `./PatchMatch -h` to display help.
 - The original paper can be found here: http://gfx.cs.princeton.edu/pubs/Barnes_2009_PAR/index.php
 - The two sample images have been extracted from this video https://vimeo.com/75735063 (under Creative Commons license)
-- Example: `./PatchMatch -h -i0 M0.png -i1 M1.png -n 2 -s 5`
+- Examples:
+  - `./PatchMatch -h -i0 M0.png -i1 M1.png -n 2 -s 5` with animation
+  - `./PatchMatch -h -i0 M0.png -i1 M1.png -n 7 -s 7 -d false -v false` much faster 
 
 ## TODO
   - [x] Display in real-time
