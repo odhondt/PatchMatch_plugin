@@ -9,6 +9,7 @@
 - Type `./PatchMatch -h` to display help.
 - The original paper can be found here: http://gfx.cs.princeton.edu/pubs/Barnes_2009_PAR/index.php
 - The two sample images have been extracted from this video https://vimeo.com/75735063 (under Creative Commons license)
+
 ## TODO
   - [x] Display in real-time
   - [ ] More detailed doc
