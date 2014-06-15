@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------------------
 # Define the CImg files to be compiled (name of the source file without the .cpp extension)
 #-------------------------------------------------------------------------------------------
-CIMG_FILES = PatchMatch\
+CIMG_FILES = PMCompletion\
             
 
 #---------------------------------
