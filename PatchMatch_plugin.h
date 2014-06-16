@@ -256,9 +256,9 @@ void fillXYLists(const CImg<T> &mask, CImg<Tt> &listSource, CImg<Tt> &listTarget
 // the target is a hole defined by a binary 
 // mask and the source is the rest of the image
 template<typename Tt>
-CImg<T>& patchMatchCmpl(const CImg<Tt> &img0, const CImg<Tt> &img1,
-                    int patchSize, const int nIter = 2,
-                    CImgDisplay *const disp=0) {
+CImg<T>& patchMatchCmpl(const CImg<Tt> &listTarget,
+                    const CImg<Tt> &mask, CImg<Tt> &off,
+                    int patchSize, const int nIter = 2) {
   if (img0.spectrum() != img1.spectrum())
     throw CImgInstanceException("Images must have the same number of channels.");
 
@@ -267,43 +267,32 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img0, const CImg<Tt> &img1,
     cimg::warn("Input patch size is even, adding 1.");
   }
   const int
-    w0 = img0.width(),
-    h0 = img0.height(),
-    w1 = img1.width(),
-    h1 = img1.height(),
-    nChannels = img0.spectrum();
+    w0 = width(),
+    h0 = height(),
+    nChannels = spectrum();
 
-  CImg<Tt> imgrec, visu0, visu1; // used only for display purpose
-  if (disp) {
-    imgrec.assign(img0.width(),img0.height(),1,img0.spectrum(),0);
-    visu0 = img0.get_resize(-100,-100,1,3);
-    visu1 = img1.get_resize(-100,-100,1,3);
-  }
 
   const int P = patchSize, H = P/2;
 
   // Zero padding borders
-  CImg<Tt> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
-  CImg<Tt> img1big(w1+2*H, h1+2*H, 1, nChannels, 0);
+  CImg<T> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
 
   // Try to penalize border patches
   img0big.rand(0,255);
-  img1big.rand(0,255);
 
-  img0big.draw_image(H, H, 0, 0, img0);
-  img1big.draw_image(H, H, 0, 0, img1);
+  img0big.draw_image(H, H, 0, 0, (*this));
 
-  CImg<T> off(w0, h0, 1, 2, 0);
-  CImg<Tt> minDist(w0, h0, 1, 1, 0);
+//  off.assign(width(), height(), 1, 2, 0.0);
+  CImg<T> minDist(listTarget.width(), 1, 1, 1, 0);
 
   // Initialize with random offsets
-  cimg_forXY(off, x0, y0){
-    int x1 = ((w1-1) * cimg::rand());
-    int y1 = ((h1-1) * cimg::rand());
-    off(x0, y0, 0) = x1 - x0;
-    off(x0, y0, 1) = y1 - y0;
-    minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
-  }
+//  cimg_forXY(off, x0, y0){
+//    int x1 = ((w1-1) * cimg::rand());
+//    int y1 = ((h1-1) * cimg::rand());
+//    off(x0, y0, 0) = x1 - x0;
+//    off(x0, y0, 1) = y1 - y0;
+//    minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
+//  }
 
   int xStart, yStart, xFinish, yFinish, inc;
   for (int n = 0; n < nIter; ++n) {
@@ -348,7 +337,7 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img0, const CImg<Tt> &img1,
 
           const int
             wMinY = cimg::max(0, y+offYCurr-wSizY/2),
-            wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
+                  wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
           y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
           d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
 
@@ -360,17 +349,6 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img0, const CImg<Tt> &img1,
           wSizX /= 2;
           wSizY /= 2;
         } while (wSizX >= 1 && wSizY >= 1);
-        // If a pointer to a CImgDisplay is passed as the last argument
-        // the output of the algorithm is displayed as an animation
-        // !! It slows down the algorithm a lot !!
-        if (disp) {
-          if (x%(w0-1)==0)
-            disp->display((visu0,
-                           imgrec.reconstruct(img1, off).get_normalize(0,255).resize(-100,-100,1,3),
-                           off.get_vizFlow(100),
-                           visu1)).set_title("Iteration %d",n+1);
-          if (disp->is_resized()) disp->resize();
-        }
       }
   }
   return off.move_to(*this);
