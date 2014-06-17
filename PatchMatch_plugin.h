@@ -256,100 +256,115 @@ void fillXYLists(const CImg<T> &mask, CImg<Tt> &listSource, CImg<Tt> &listTarget
 // the target is a hole defined by a binary 
 // mask and the source is the rest of the image
 template<typename Tt>
-CImg<T>& patchMatchCmpl(const CImg<Tt> &listTarget,
-                    const CImg<Tt> &mask, CImg<Tt> &off,
+CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
+                    const CImg<Tt> &mask,
                     int patchSize, const int nIter = 2) {
-  if (img0.spectrum() != img1.spectrum())
-    throw CImgInstanceException("Images must have the same number of channels.");
+  if (img.width() != mask.width() || img.height() != mask.height() )
+    throw CImgInstanceException("Image and mask must have the same number of dimensions.");
 
   if (!patchSize % 2){
     ++patchSize;
     cimg::warn("Input patch size is even, adding 1.");
   }
   const int
-    w0 = width(),
-    h0 = height(),
+    w = img.width(),
+    h = img.height(),
     nChannels = spectrum();
 
 
   const int P = patchSize, H = P/2;
 
   // Zero padding borders
-  CImg<T> img0big(w0+2*H, h0+2*H, 1, nChannels, 0);
+  CImg<T> imgbig(w+2*H, h+2*H, 1, nChannels, 0);
 
   // Try to penalize border patches
-  img0big.rand(0,255);
+  imgbig.rand(0,255);
+  imgbig.draw_image(H, H, 0, 0, img);
+  
+  // List of pixel coordinates in the target area 
+  int sizeListTarget = 0;
+  cimg_for1(mask.size(), i) if(mask[i] == 1) ++sizeListTarget;
+  CImg<int> listTarget(sizeListTarget, 2, 1, 1, 0);
+  int idx = 0;
+  cimg_forXY(mask, x, y) {
+    if(mask(x, y) == 1) {
+      listTarget(idx, 0) = x; 
+      listTarget(idx, 1) = y; 
+    }
+  }
 
-  img0big.draw_image(H, H, 0, 0, (*this));
+  
+  // Computing patch distances for initial offsets
+  CImg<T> minDist(w, h, 1, 1, 0);
+  cimg_forX(listTarget, i) {
+    int x0 = listTarget(i, 0);
+    int y0 = listTarget(i, 1);
+    int x1 = x0 + off(x0, y0, 0);
+    int x1 = x0 + off(x0, y0, 1);
+    if(x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) {
+      minDist(x0, y0) = distPatch(img, img , x0, y0, x1, y1, P);
+    }
+  }
 
-//  off.assign(width(), height(), 1, 2, 0.0);
-  CImg<T> minDist(listTarget.width(), 1, 1, 1, 0);
-
-  // Initialize with random offsets
-//  cimg_forXY(off, x0, y0){
-//    int x1 = ((w1-1) * cimg::rand());
-//    int y1 = ((h1-1) * cimg::rand());
-//    off(x0, y0, 0) = x1 - x0;
-//    off(x0, y0, 1) = y1 - y0;
-//    minDist(x0, y0) = distPatch(img0big, img1big, x0, y0, x1, y1, P);
-//  }
-
-  int xStart, yStart, xFinish, yFinish, inc;
+  
+//  int xStart, yStart, xFinish, yFinish, inc;
+  int iStart, iFinish, inc;
   for (int n = 0; n < nIter; ++n) {
     std::fprintf(stderr,"Iteration %d\n",n+1);
 
     // at odd iterations, reverse scan order
-    if (!(n%2)) { xStart = yStart = inc = 1; xFinish = w0; yFinish = h0; }
-    else { xStart = w0-2; yStart = h0-2; xFinish = yFinish = inc = -1; }
+    if (!(n%2)) { iStart = 0; inc = 1; iFinish = sizeListTarget - 1; }
+    else { iStart = sizeListTarget - 1; inc = -1; iFinish = 0; }
 
-    for (int y = yStart; y != yFinish; y=y+inc)
-      for (int x = xStart; x != xFinish; x=x+inc) {
-        // Propagation
-        Tt d2 = 0.0;
-        int x1 = x+off(x-inc,y,0), y1 = y+off(x-inc,y,1);
-        if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds
-          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
-          if (d2<minDist(x, y)) {
-            minDist(x, y) = d2;
-            off(x, y, 0) = off(x-inc, y, 0);
-            off(x, y, 1) = off(x-inc, y, 1);
-          }
+    for(int i = iStart; i != iFinish; i += inc) {
+      int x = listTarget(i, 0);
+      int y = listTarget(i, 1);
+      // Propagation
+      Tt d2 = 0.0;
+      int x1 = x+off(x-inc,y,0), y1 = y+off(x-inc,y,1);
+      if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds
+        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+        if (d2<minDist(x, y)) {
+          minDist(x, y) = d2;
+          off(x, y, 0) = off(x-inc, y, 0);
+          off(x, y, 1) = off(x-inc, y, 1);
         }
-        x1 = x+off(x, y-inc, 0);
-        y1 = y+off(x, y-inc, 1);
-        if (x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1) { // propagate only if inside img1 bounds
-          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
-          if (d2<minDist(x, y)) {
-            minDist(x, y) = d2;
-            off(x, y, 0) = off(x, y-inc, 0);
-            off(x, y, 1) = off(x, y-inc, 1);
-          }
-        }
-
-        // Randomized search
-        int wSizX = w1 - 1, wSizY = h1 - 1;
-        const T offXCurr = off(x, y, 0), offYCurr = off(x, y, 1);
-        do{
-          const int
-            wMinX = cimg::max(0, x+offXCurr-wSizX/2),
-            wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2);
-          x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
-
-          const int
-            wMinY = cimg::max(0, y+offYCurr-wSizY/2),
-                  wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
-          y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
-          d2 = distPatch(img0big, img1big, x, y, x1, y1, P);
-
-          if (d2 < minDist(x, y)) {
-            minDist(x, y) = d2;
-            off(x, y, 0) = x1-x;
-            off(x, y, 1) = y1-y;
-          }
-          wSizX /= 2;
-          wSizY /= 2;
-        } while (wSizX >= 1 && wSizY >= 1);
       }
+      x1 = x+off(x, y-inc, 0);
+      y1 = y+off(x, y-inc, 1);
+      if (x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1) { // propagate only if inside img1 bounds
+        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+        if (d2<minDist(x, y)) {
+          minDist(x, y) = d2;
+          off(x, y, 0) = off(x, y-inc, 0);
+          off(x, y, 1) = off(x, y-inc, 1);
+        }
+      }
+
+      // Randomized search
+      int wSizX = w1 - 1, wSizY = h1 - 1;
+      const T offXCurr = off(x, y, 0), offYCurr = off(x, y, 1);
+      do{
+        const int
+          wMinX = cimg::max(0, x+offXCurr-wSizX/2),
+                wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2);
+        x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
+
+        const int
+          wMinY = cimg::max(0, y+offYCurr-wSizY/2),
+                wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
+        y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
+        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+
+        if (d2 < minDist(x, y)) {
+          minDist(x, y) = d2;
+          off(x, y, 0) = x1-x;
+          off(x, y, 1) = y1-y;
+        }
+        wSizX /= 2;
+        wSizY /= 2;
+      } while (wSizX >= 1 && wSizY >= 1);
+    }
   }
   return off.move_to(*this);
 }
