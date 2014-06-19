@@ -321,24 +321,36 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
       int y = listTarget(i, 1);
       // Propagation
       Tt d2 = 0.0;
-      int x1 = x+off(x-inc,y,0), y1 = y+off(x-inc,y,1);
-      if(x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1){ // propagate only if inside img1 bounds
-        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
-        if (d2<minDist(x, y)) {
-          minDist(x, y) = d2;
-          off(x, y, 0) = off(x-inc, y, 0);
-          off(x, y, 1) = off(x-inc, y, 1);
+      
+      //TODO: check if x1,y1 belong to source
+      
+      // Neighbour has to be in the image bounds and in the target
+      if(x-inc > 0 && x-inc < w) 
+        if(mask(x-inc, y) == 1.0) {
+          int x1 = x+off(x-inc,y,0), y1 = y+off(x-inc,y,1);
+          if(x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) { // propagate only if inside img bounds
+            d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+            if (d2<minDist(x, y)) {
+              minDist(x, y) = d2;
+              off(x, y, 0) = off(x-inc, y, 0);
+              off(x, y, 1) = off(x-inc, y, 1);
+            }
+          }
         }
-      }
-      x1 = x+off(x, y-inc, 0);
-      y1 = y+off(x, y-inc, 1);
-      if (x1 >= 0 && x1 < w1 && y1 >= 0 && y1 < h1) { // propagate only if inside img1 bounds
-        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
-        if (d2<minDist(x, y)) {
-          minDist(x, y) = d2;
-          off(x, y, 0) = off(x, y-inc, 0);
-          off(x, y, 1) = off(x, y-inc, 1);
-        }
+
+      // Neighbour has to be in the image bounds and in the target
+      if(y-inc > 0 && y-inc < h)
+        if(mask(x, y-inc) == 1.0) {
+          x1 = x+off(x, y-inc, 0);
+          y1 = y+off(x, y-inc, 1);
+          if (x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) { // propagate only if inside img bounds
+            d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+            if (d2<minDist(x, y)) {
+              minDist(x, y) = d2;
+              off(x, y, 0) = off(x, y-inc, 0);
+              off(x, y, 1) = off(x, y-inc, 1);
+            }
+          }
       }
 
       // Randomized search
@@ -354,12 +366,15 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
           wMinY = cimg::max(0, y+offYCurr-wSizY/2),
                 wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
         y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
-        d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
 
-        if (d2 < minDist(x, y)) {
-          minDist(x, y) = d2;
-          off(x, y, 0) = x1-x;
-          off(x, y, 1) = y1-y;
+        if(mask(x1, y1) == 0) {
+          d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+
+          if (d2 < minDist(x, y)) {
+            minDist(x, y) = d2;
+            off(x, y, 0) = x1-x;
+            off(x, y, 1) = y1-y;
+          }
         }
         wSizX /= 2;
         wSizY /= 2;
