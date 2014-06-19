@@ -252,6 +252,26 @@ void fillXYLists(const CImg<T> &mask, CImg<Tt> &listSource, CImg<Tt> &listTarget
   }
 }
 
+// Assigns random offsets to target pixels
+// (where mask value is one)
+template<typename Tt>
+CImg<T>& randomInitCmpl(const CImg<Tt>& mask){
+  (*this).assign(mask, "x,y,1,2", 0.0);
+  
+  cimg_forXY(mask, x, y) {
+    if(mask(x, y) == 1){
+      int x1 = ((width()-1) * cimg::rand());
+      int y1 = ((height()-1) * cimg::rand());
+      if(mask(x1, y1) == 0) {
+        (*this)(x, y, 0) = x1 - x;
+        (*this)(x, y, 1) = y1 - y;
+      }
+    }
+  }
+  return (*this);
+
+}
+
 // Version of the patch match algorithm for image completion
 // the target is a hole defined by a binary 
 // mask and the source is the rest of the image
@@ -270,7 +290,8 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
     w = img.width(),
     h = img.height(),
     nChannels = spectrum();
-
+  
+  CImg<T> off(*this);
 
   const int P = patchSize, H = P/2;
 
@@ -290,9 +311,9 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
     if(mask(x, y) == 1) {
       listTarget(idx, 0) = x; 
       listTarget(idx, 1) = y; 
+      ++idx;
     }
   }
-
   
   // Computing patch distances for initial offsets
   CImg<T> minDist(w, h, 1, 1, 0);
@@ -300,14 +321,12 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
     int x0 = listTarget(i, 0);
     int y0 = listTarget(i, 1);
     int x1 = x0 + off(x0, y0, 0);
-    int x1 = x0 + off(x0, y0, 1);
+    int y1 = y0 + off(x0, y0, 1);
     if(x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) {
-      minDist(x0, y0) = distPatch(img, img , x0, y0, x1, y1, P);
+      minDist(x0, y0) = distPatch(imgbig, imgbig, x0, y0, x1, y1, P);
     }
   }
 
-  
-//  int xStart, yStart, xFinish, yFinish, inc;
   int iStart, iFinish, inc;
   for (int n = 0; n < nIter; ++n) {
     std::fprintf(stderr,"Iteration %d\n",n+1);
@@ -322,14 +341,14 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
       // Propagation
       Tt d2 = 0.0;
       
-      //TODO: check if x1,y1 belong to source
-      
+      int x1 , y1;
       // Neighbour has to be in the image bounds and in the target
       if(x-inc > 0 && x-inc < w) 
         if(mask(x-inc, y) == 1.0) {
-          int x1 = x+off(x-inc,y,0), y1 = y+off(x-inc,y,1);
-          if(x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) { // propagate only if inside img bounds
-            d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+          x1 = x+off(x-inc,y,0);
+          y1 = y+off(x-inc,y,1);
+          if(x1 >= 0 && x1 < w && y1 >= 0 && y1 < h && mask(x1, y1) == 0) { // propagate only if inside img bounds
+            d2 = distPatch(imgbig, imgbig, x, y, x1, y1, P);
             if (d2<minDist(x, y)) {
               minDist(x, y) = d2;
               off(x, y, 0) = off(x-inc, y, 0);
@@ -343,8 +362,8 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
         if(mask(x, y-inc) == 1.0) {
           x1 = x+off(x, y-inc, 0);
           y1 = y+off(x, y-inc, 1);
-          if (x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) { // propagate only if inside img bounds
-            d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+          if (x1 >= 0 && x1 < w && y1 >= 0 && y1 < h && mask(x1, y1) == 0) { // propagate only if inside img bounds
+            d2 = distPatch(imgbig, imgbig, x, y, x1, y1, P);
             if (d2<minDist(x, y)) {
               minDist(x, y) = d2;
               off(x, y, 0) = off(x, y-inc, 0);
@@ -354,21 +373,21 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
       }
 
       // Randomized search
-      int wSizX = w1 - 1, wSizY = h1 - 1;
+      int wSizX = w - 1, wSizY = h - 1;
       const T offXCurr = off(x, y, 0), offYCurr = off(x, y, 1);
       do{
         const int
           wMinX = cimg::max(0, x+offXCurr-wSizX/2),
-                wMaxX = cimg::min(w1-1, x+offXCurr+wSizX/2);
+                wMaxX = cimg::min(w-1, x+offXCurr+wSizX/2);
         x1 = (wMaxX-wMinX) * cimg::rand() + wMinX;
 
         const int
           wMinY = cimg::max(0, y+offYCurr-wSizY/2),
-                wMaxY = cimg::min(h1-1, y+offYCurr+wSizY/2);
+                wMaxY = cimg::min(h-1, y+offYCurr+wSizY/2);
         y1 = (wMaxY-wMinY) * cimg::rand() + wMinY;
 
         if(mask(x1, y1) == 0) {
-          d2 = distPatch(imgbig, img1big, x, y, x1, y1, P);
+          d2 = distPatch(imgbig, imgbig, x, y, x1, y1, P);
 
           if (d2 < minDist(x, y)) {
             minDist(x, y) = d2;

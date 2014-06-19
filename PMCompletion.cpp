@@ -52,29 +52,42 @@ int main(int argc, char **argv)
 {
   cimg_usage("PatchMatch based image completion.");
   cimg_help("Input / Output parameters:\n--------------------------");
-  const char *fileimg = cimg_option("-i", (char*)0, "Image");
-  const char *filemask = cimg_option("-m", (char*)0, "Mask");
+//  const char *fileimg = cimg_option("-i", (char*)0, "Image");
+//  const char *filemask = cimg_option("-m", (char*)0, "Mask");
   const char *fileout = cimg_option("-o", (char*)0, "Output image of offsets (channel 0: x offset, channel 1: y offset)");
   const int P = cimg_option("-s", 7, "Patch size");
   const int N = cimg_option("-n", 5, "Number of iterations");
   const bool DISP = cimg_option("-d", true, "Real-time display (slows down the process)");
   const bool VERB = cimg_option("-v", true, "Verbose");
 
-  if(!fileimg || !filemask){
-    cerr<<"Must specify images with -i0 and -i1 options (-h for help).\n";
-    exit(0);
-  }
+//  if(!fileimg || !filemask){
+//    cerr<<"Must specify images with -i0 and -i1 options (-h for help).\n";
+//    exit(0);
+//  }
 
   srand (time(NULL));
 
 
-  CImg<int> img(fileimg);
-  CImg<int> mask(filemask);
+//  CImg<int> img(fileimg);
+//  CImg<int> mask(filemask);
+  CImg<int> img("M0.png");
+  CImg<int> mask(img, "xy", 0);
   CImg<int> imgrec(img, "xyzc", 0);
 
-//  CImg<int> off;
-  
-  
+  const int white[] = {1};
+
+  mask.draw_rectangle(100, 100, 180, 200, white);
+
+  (img, mask).display();
+
+  CImg<int> off;
+  off.randomInitCmpl(mask); 
+  off.get_vizFlow().display();
+  off.patchMatchCmpl(img, mask, P, N);
+  off.get_vizFlow().display();
+  imgrec.reconstruct(img, off);
+  (img,imgrec).display();
+
   if(fileout)
     imgrec.save_cimg(fileout);
 }
