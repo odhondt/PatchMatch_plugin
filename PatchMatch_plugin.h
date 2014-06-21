@@ -277,10 +277,11 @@ CImg<T>& randomInitCmpl(const CImg<Tt>& mask){
 // mask and the source is the rest of the image
 template<typename Tt>
 CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
-                    const CImg<Tt> &mask,
-                    int patchSize, const int nIter = 2) {
+                        const CImg<Tt> &mask,
+                        int patchSize, 
+                        const int nIter = 2) {
   if (img.width() != mask.width() || img.height() != mask.height() )
-    throw CImgInstanceException("Image and mask must have the same number of dimensions.");
+    throw CImgInstanceException("Image and mask must have the same dimension.");
 
   if (!patchSize % 2){
     ++patchSize;
@@ -403,3 +404,13 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
   return off.move_to(*this);
 }
 
+
+template<typename Tt>
+CImg<T>& patchVoteCmpl(const CImg<Tt> &img,
+                        const CImg<Tt> &mask,
+                        int patchSize) const {
+
+  // to fill
+
+  return (*this);
+}
