@@ -409,8 +409,49 @@ template<typename Tt>
 CImg<T>& patchVoteCmpl(const CImg<Tt> &img,
                         const CImg<Tt> &mask,
                         int patchSize) const {
+  const int
+    w = img.width(),
+    h = img.height(),
+    nChannels = spectrum();
+  const int P = patchSize, H = P/2;
 
-  // to fill
+  CImg<T> off(*this);
+  CImg<T> img0(img);
+
+  // Setting mask pixels to zero
+  cimg_forXYC(img0, x, y, c)
+    if(mask(x, y) == 1)
+      img0(x, y, c) = 0;
+
+
+  // Zero padding borders
+  CImg<float> imgbig(w+2*H, h+2*H, 1, nChannels, 0);
+  CImg<float> weight(w+2*H, h+2*H, 1, 1, 0);
+  
+  // This might be more time consuming but it allows to handle the case where
+  // the hole is touching window border and consider similar patches on border.
+  imgbig.draw_image(H, H, 0, 0, img0);
+
+  // scanning the mask (can be optimized by passing x-y lists between functions)
+  cimg_forXY(masx, x, y) {
+    if(mask(x, y) == 1) {
+      for(int yy = y; yy <= y + P, ++yy)     
+        for(int xx = x; xx <= x + P, ++xx) {
+          if(mask(xx, yy) == 1) {
+            ++weight(xx, yy);
+            cimg_forC(imgbig, c)
+              imgbig(xx, yy, c) += imgbig(xx + off(x, y, 0), yy + off(x, y, 1), c);
+          }
+        }     
+    }
+
+  // Dividing by weights
+  cimg_forXY(masx, x, y) {
+    if(mask(x, y) == 1) {
+    
+
+    }
+  }
 
   return (*this);
 }
