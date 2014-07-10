@@ -257,15 +257,16 @@ void fillXYLists(const CImg<T> &mask, CImg<Tt> &listSource, CImg<Tt> &listTarget
 template<typename Tt>
 CImg<T>& randomInitCmpl(const CImg<Tt>& mask){
   (*this).assign(mask, "x,y,1,2", 0.0);
-  
   cimg_forXY(mask, x, y) {
     if(mask(x, y) == 1){
-      int x1 = ((width()-1) * cimg::rand());
-      int y1 = ((height()-1) * cimg::rand());
-      if(mask(x1, y1) == 0) {
-        (*this)(x, y, 0) = x1 - x;
-        (*this)(x, y, 1) = y1 - y;
-      }
+      int x1; 
+      int y1;
+      do{
+        x1 = ((width()-1) * cimg::rand());
+        y1 = ((height()-1) * cimg::rand());
+      }while(mask(x1, y1) != 0);
+      (*this)(x, y, 0) = x1 - x;
+      (*this)(x, y, 1) = y1 - y;
     }
   }
   return (*this);
@@ -406,17 +407,16 @@ CImg<T>& patchMatchCmpl(const CImg<Tt> &img,
 
 
 template<typename Tt>
-CImg<T>& patchVoteCmpl(const CImg<Tt> &img,
-                        const CImg<Tt> &mask,
-                        int patchSize) const {
+CImg<T>& patchVoteCmpl(const CImg<T> &mask,
+                       const CImg<Tt> &off,
+                       int patchSize) {
   const int
-    w = img.width(),
-    h = img.height(),
+    w = width(),
+    h = height(),
     nChannels = spectrum();
   const int P = patchSize, H = P/2;
 
-  CImg<T> off(*this);
-  CImg<T> img0(img);
+  CImg<float> img0(*this);
 
   // Setting mask pixels to zero
   cimg_forXYC(img0, x, y, c)
@@ -426,32 +426,54 @@ CImg<T>& patchVoteCmpl(const CImg<Tt> &img,
 
   // Zero padding borders
   CImg<float> imgbig(w+2*H, h+2*H, 1, nChannels, 0);
-  CImg<float> weight(w+2*H, h+2*H, 1, 1, 0);
+  CImg<float> weight(w+2*H, h+2*H, 1, 1, 1.0);
+  CImg<float> maskbig(w+2*H, h+2*H, 1, 1, 0);
   
   // This might be more time consuming but it allows to handle the case where
   // the hole is touching window border and consider similar patches on border.
   imgbig.draw_image(H, H, 0, 0, img0);
+  maskbig.draw_image(H, H, 0, 0, mask);
+
+  imgbig.display();
+//  imgbig.get_crop(H, H, w + H-1, h + H - 1).display();
+//  (img0-imgbig.get_crop(H, H, w + H-1, h + H-1)).display();
 
   // scanning the mask (can be optimized by passing x-y lists between functions)
-  cimg_forXY(masx, x, y) {
-    if(mask(x, y) == 1) {
-      for(int yy = y; yy <= y + P, ++yy)     
-        for(int xx = x; xx <= x + P, ++xx) {
-          if(mask(xx, yy) == 1) {
+  cimg_forXY(mask, x, y)
+    if(mask(x, y) == 1) { 
+      for(int yy = y; yy <= y + P; ++yy)     
+        for(int xx = x; xx <= x + P; ++xx)
+          if(maskbig(xx, yy) == 1) {
             ++weight(xx, yy);
             cimg_forC(imgbig, c)
               imgbig(xx, yy, c) += imgbig(xx + off(x, y, 0), yy + off(x, y, 1), c);
+
           }
-        }     
+//      imgbig.display();
     }
+
+  imgbig.display();
+  img0 = imgbig.get_crop(H, H, w + H - 1, h + H - 1);
+  weight.crop(H, H, w + H - 1, h + H - 1);
+  
 
   // Dividing by weights
-  cimg_forXY(masx, x, y) {
+//  (img0, weight).display();
+  (img0.get_div(weight.get_resize(-100,-100,1,3))).display();
+  cimg_forXY(mask, x, y) {
     if(mask(x, y) == 1) {
-    
-
+      cimg_forC(img0, c)
+       img0(x, y, c) /= weight(x, y);
     }
   }
+  img0.display();
 
-  return (*this);
+  return img0.move_to(*this);
+}
+
+template<typename Tt>
+CImg<T> get_patchVoteCmpl(const CImg<T> &mask,
+                       const CImg<Tt> &off,
+                       int patchSize) const {
+      return CImg<Tfloat>(*this,false).patchVoteCmpl(mask, off, patchSize);
 }

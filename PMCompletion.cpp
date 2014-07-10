@@ -82,11 +82,15 @@ int main(int argc, char **argv)
 
   CImg<int> off;
   off.randomInitCmpl(mask); 
-  off.get_vizFlow().display();
+//  off.get_vizFlow().display();
   off.patchMatchCmpl(img, mask, P, N);
-  off.get_vizFlow().display();
+//  off.get_vizFlow().display();
   imgrec.reconstruct(img, off);
-  (img,imgrec).display();
+//  (img,imgrec).display();
+
+  CImg<int> imgv(img);
+  imgv.patchVoteCmpl(mask, off, P);
+//  (img,imgv).display();
 
   if(fileout)
     imgrec.save_cimg(fileout);
